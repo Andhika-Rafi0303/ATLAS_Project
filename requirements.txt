@@ -88,3 +88,4 @@ wcwidth==0.2.13
 xgboost==2.1.0
 xyzservices==2024.6.0
 zipp==3.19.2
+python == 3.7

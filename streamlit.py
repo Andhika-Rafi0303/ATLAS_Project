@@ -44,8 +44,6 @@ if uploaded_data is None:
 df = load_data(uploaded_data)
 
 data = df.copy()
-columns_to_drop = ['Site ID', 'Site Name', 'Month', 'Site Tipe']
-data = data.drop(columns=columns_to_drop, errors='ignore')
 
 def anomaly_check(data):
     data['anomaly'] = pipe.predict(data[["KWH"]])
@@ -154,9 +152,6 @@ def display(df):
             formatted_rugi_cost = f"- Rp. {rugi_cost:,.0f}".replace(',', '.')
             st.metric("Perkiraan total Kerugian Anomali", formatted_rugi_cost)
 
-
-
-
         
         untung_cost = total_cost - rugi_cost
         formatted_untung_cost = f"Rp. {untung_cost:,.0f}".replace(',', '.')
@@ -222,7 +217,7 @@ def display(df):
                 mime_type = "text/csv"
                 file_extension = "csv"
             else:
-                excel_data = to_excel(df)
+                excel_data = to_excel(filtered_df)
                 download_data = excel_data
                 mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 file_extension = "xlsx"
@@ -231,7 +226,7 @@ def display(df):
             st.download_button(
                 label=f"Download data sebagai {file_format}",
                 data=download_data,
-                file_name=f"data.{file_extension}",
+                file_name=f"Data Anomali_{selected_city}_{selected_keterangan}.{file_extension}",
                 mime=mime_type
             )
 

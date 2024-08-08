@@ -62,6 +62,10 @@ tambah['Kota / Kabupaten'] = tambah['Kota / Kabupaten'].replace('NOP ', '', rege
 tambah = tambah.drop(columns=col, axis=1)
 
 df = df.merge(tambah, on='Site ID', how='left')
+df = df.dropna()
+
+if 'Cost' not in df.columns:
+    df['Cost'] = 0
 
 cols = df.columns.tolist()
 cols.insert(3, cols.pop(cols.index('Kota / Kabupaten')))
@@ -183,7 +187,7 @@ def display(df):
     pred1_df['KWH_pred'] = pred1_df['KWH_pred'].astype(int)
 
     cols_cost = ['Daya Master','RRC Average','User Active Average','Payload','Total RRU', 'Cost']
-    pred2_df = filtered_df[filtered_df['keterangan'] == 'Over Baseline']
+    pred2_df = filtered_df
     pred2_df = pred2_df[cols_cost]
     X2_pred_df = pred2_df.drop(columns='Cost', axis=1)
     pred2_df['Cost_pred'] = model_cost.predict(X2_pred_df)
@@ -226,7 +230,7 @@ def display(df):
             st.download_button(
                 label=f"Download data sebagai {file_format}",
                 data=download_data,
-                file_name=f"Data Anomali_{selected_city}_{selected_keterangan}.{file_extension}",
+                file_name=f"Data Anomali_{selected_city}_{selected_keterangan}_Bulan {df['Month'].iloc[1]}.{file_extension}",
                 mime=mime_type
             )
 

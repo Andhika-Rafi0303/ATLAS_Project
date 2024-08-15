@@ -14,32 +14,43 @@ model_cost = pickle.load(open('Cost_xgbrf_model.pkl', 'rb'))
 st.html("styles.html")
 # Sidebar content
 
-st.title("Analisis Tegangan Listrik Anomali Singkat")
-st.sidebar.image('logo_white.png')
+
 with open('styles.html') as f:
     custom_css = f.read()
 
 # Apply the custom CSS
 st.markdown(custom_css, unsafe_allow_html=True)
 
+col1, col2, col3 = st.columns([12, 12, 2], vertical_alignment = 'center')
+with col1:
+    st.image('logo.png', width=400)
+
+with col2:
+    st.image('image.png', width=200)
+
+with col3:
+    st.image('WJ4.png', width=100)
+
 ################################# MACHINE LEARNING ########################################
 is_csv = False
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    uploaded_data = st.file_uploader("Masukkan data", type=['csv', 'xlsx'])
+
 def load_data(file):
     if file.name.endswith('.csv'):
         df = pd.read_csv(file).reset_index()
-        is_csv = True
     elif file.name.endswith('.xlsx') or file.name.endswith('.xls'):
         df = pd.read_excel(file, engine='openpyxl').reset_index()
-        is_csv = False
     else:
         raise ValueError("File type not supported. Please upload a CSV or Excel file.")
     return df
 
-uploaded_data = st.sidebar.file_uploader("Masukkan data", type=['csv', 'xlsx'])
-
 if uploaded_data is None:
-    st.sidebar.info("Masukkan data yang akan dicek")
+    st.info("Masukkan data yang akan dicek")
     st.stop()
+
 
 df = load_data(uploaded_data)
 

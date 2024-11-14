@@ -12,15 +12,16 @@ st.set_page_config(
 pipe = pickle.load(open('model.pkl', 'rb'))
 model_cost = pickle.load(open('Cost_xgbrf_model.pkl', 'rb'))
 st.html("styles.html")
-
 # Sidebar content
+
+
 with open('styles.html') as f:
     custom_css = f.read()
 
 # Apply the custom CSS
 st.markdown(custom_css, unsafe_allow_html=True)
 
-col1, col2, col3 = st.columns([12, 12, 2], vertical_alignment='center')
+col1, col2, col3 = st.columns([12, 12, 2], vertical_alignment = 'center')
 with col1:
     st.image('logo.png', width=400)
 
@@ -57,7 +58,7 @@ data = df.copy()
 # Anomaly detection based on KWH and KWH_pred with tolerance of 206
 kwh_pred = pickle.load(open('KWH_xgbrf_model.pkl', 'rb'))
 
-cols_kwh = ['Daya Master', 'RRC Average', 'User Active Average', 'Payload', 'Total RRU', 'KWH']
+cols_kwh = ['Daya Master','RRC Average','User Active Average','Payload','Total RRU', 'KWH']
 pred1_df = df[cols_kwh]
 X1_pred_df = pred1_df.drop(columns='KWH', axis=1)
 pred1_df['KWH_pred'] = kwh_pred.predict(X1_pred_df)
@@ -87,20 +88,10 @@ cols = df.columns.tolist()
 cols.insert(3, cols.pop(cols.index('Kota / Kabupaten')))
 df = df.reindex(columns=cols)
 
-# Calculate Cost_pred before determine_keterangan
-cost_pred_cols = ['Daya Master', 'RRC Average', 'User Active Average', 'Payload', 'Total RRU']
-pred2_df = df[cost_pred_cols]
-X2_pred_df = pred2_df  # Add any necessary feature engineering or transformations
-pred2_df['Cost_pred'] = model_cost.predict(X2_pred_df)
-
-df['Cost_pred'] = pred2_df['Cost_pred']
-
-# Modify the 'determine_keterangan' function to compare 'Cost' and 'Cost_pred'
 def determine_keterangan(row):
-    tolerance = 355630  # Cost tolerance value
-    if abs(row['Cost'] - row['Cost_pred']) > tolerance:
+    if row['KWH'] > row['Emax (kWh)']:
         return 'Over Baseline'
-    elif row['Cost'] < row['Cost_pred']:
+    elif row['KWH'] < row['Emin40 (kWh)']:
         return 'Below Baseline'
     else:
         return 'In Baseline'
@@ -110,16 +101,19 @@ df['keterangan'] = df.apply(determine_keterangan, axis=1)
 ################################# DISPLAY FUNCTION ########################################
 
 # Split layout into two columns
+# Split layout into two columns
 col1, col2 = st.columns([1.5, 1])
 
 with col1:
 
-    col_controls1, col_controls2 = st.columns([1, 1])
+    col_controls1, col_controls2, col_controls3 = st.columns([1, 1,1])
     with col_controls1:
         selected_city = st.selectbox('Pilih Kota/Kabupaten:', ['Semua'] + sorted(df['Kota / Kabupaten'].unique().tolist()))
     with col_controls2:
         selected_keterangan = st.selectbox('Pilih Keterangan:', ['Semua'] + df['keterangan'].unique().tolist())
-
+    with col_controls3:
+        selected_anomaly = st.selectbox('Pilih Status Anomali:', ['Semua', 'Anomali', 'Normal'])
+    
     filtered_df = df
     city_df = df
     if selected_city != 'Semua':
@@ -127,6 +121,9 @@ with col1:
         city_df = city_df[city_df['Kota / Kabupaten'] == selected_city]
     if selected_keterangan != 'Semua':
         filtered_df = filtered_df[filtered_df['keterangan'] == selected_keterangan]
+    if selected_anomaly != 'Semua':
+        filtered_df = filtered_df[filtered_df['anomaly'] == selected_anomaly]
+        city_df = city_df[city_df['anomaly'] == selected_anomaly]
 
     scatter_plot = alt.Chart(filtered_df).mark_circle(size=60).encode(
         x='index',
@@ -155,9 +152,9 @@ with col1:
 
 
 with col2:
-    in_cols1, in_cols2 = st.columns([1, 1])
+    in_cols1, in_cols2 = st.columns([1, 1]) 
 
-    with in_cols1: 
+    with in_cols1 : 
         total_cost = city_df['Cost'].sum()
         formatted_cost = f"Rp. {total_cost:,.0f}".replace(',', '.')
         st.metric("Total Pembayaran", formatted_cost)
@@ -166,7 +163,7 @@ with col2:
         formatted_anomaly = f"{ano} / {city_df.shape[0]} site"
         st.metric("Jumlah Anomali", formatted_anomaly)
 
-    with in_cols2:
+    with in_cols2 :
         rugi_df = city_df[city_df['keterangan'] == 'Over Baseline'] 
         cols = ['Daya Master', 'RRC Average', 'User Active Average', 'Payload', 'Total RRU']
         rugi_dataset = rugi_df[cols]
@@ -200,6 +197,7 @@ with col2:
         BB_f = f"{BB} site"
         st.metric("Below Baseline", BB_f)
 
+
 # Display the predictions for KWH and Cost
 df['KWH_pred'] = pred1_df['KWH_pred']
 
@@ -214,13 +212,15 @@ df['Cost_pred'] = pred2_df['Cost_pred']
 # Display the dataframe
 st.dataframe(filtered_df.drop(columns=['index'], axis=1))
 
+# Download section
 col1, col2 = st.columns([1.4 , 0.6]) 
-with col1:
+with col1 :
     st.text('* Prediksi Harga bisa melenceng ± Rp 355.630')
     st.text('* Prediksi KWH bisa melenceng ± 206 KWH')
 
-with col2:
-    select, button = st.columns([0.7 , 1.3 ], vertical_alignment='bottom')
+with col2 :
+
+    select, button = st.columns([0.7 , 1.3], vertical_alignment = 'bottom')
 
     def to_excel(dataframe):
         output = BytesIO()
@@ -229,23 +229,30 @@ with col2:
         processed_data = output.getvalue()
         return processed_data
 
-    with select:
-        file_format = st.selectbox("Pilih format", ["CSV", "Excel"])
-        if file_format == "CSV":
-            csv_data = filtered_df.to_csv(index=False)
-            download_data = csv_data
-            mime_type = "text/csv"
-            file_extension = "csv"
-        else:
-            excel_data = to_excel(filtered_df)
-            download_data = excel_data
-            mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            file_extension = "xlsx"
+with select:
+    file_format = st.selectbox("Pilih format", ["CSV", "Excel"])
+    
+    if file_format == "CSV":
+        # Convert the filtered dataframe to CSV format
+        csv_data = filtered_df.to_csv(index=False)
+        download_data = csv_data
+        mime_type = "text/csv"
+        file_extension = "csv"
+    else:
+        # Convert the filtered dataframe to Excel format
+        excel_data = to_excel(filtered_df)
+        download_data = excel_data
+        mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        file_extension = "xlsx"
 
-    with button:
-        st.download_button(
-            label=f"Download data sebagai {file_format}",
-            data=download_data,
-            file_name=f"Data Anomali_{selected_city}_{selected_keterangan}_Bulan {df['Month'].iloc[1]}.{file_extension}",
-            mime=mime_type
-        )
+with button:
+    # Prepare the dynamic file name based on selected filters
+    file_name = f"Data Anomali_{selected_city}_{selected_keterangan}_Bulan {df['Month'].iloc[0]}.{file_extension}"
+    
+    # Add a download button with the selected file format
+    st.download_button(
+        label=f"Download data sebagai {file_format}",
+        data=download_data,
+        file_name=file_name,
+        mime=mime_type
+    )
